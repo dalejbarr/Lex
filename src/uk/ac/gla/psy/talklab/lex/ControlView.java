@@ -35,8 +35,8 @@ public class ControlView extends View {
 	@Override
 	 public void onWindowFocusChanged(boolean hasFocus) {
 	  super.onWindowFocusChanged(hasFocus);
-	  mMidX = this.getWidth(); // /divide by 2
-	  mMidY = this.getHeight();
+	  mMidX = this.getWidth()/2; 
+	  mMidY = this.getHeight()/2;
 	  //mDeadZone = this.getHeight()/8;
 	  if (mVertRect == null) {
 		mVertRect = new ShapeDrawable(new RectShape());
