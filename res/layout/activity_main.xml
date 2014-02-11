@@ -9,18 +9,8 @@
 
     <uk.ac.gla.psy.talklab.lex.StageView
         android:id="@+id/stage"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
         android:layout_centerHorizontal="true"
-        android:background="#333333" />
-
-    <uk.ac.gla.psy.talklab.lex.ControlView
-        android:id="@+id/control"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_below="@id/stage"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="30dp"
-        android:background="#555555" />
-
+        android:background="#000000" />
 </RelativeLayout>

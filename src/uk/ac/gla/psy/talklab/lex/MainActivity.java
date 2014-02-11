@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
 
 	// these variables need to be set just one time, at initialization/completion
 	public static boolean mSessionCompleted = false;
-	private ControlView mControl = null;
+	//private ControlView mControl = null;
 	private StageView mStage = null;
 	private MediaPlayer mPlayer = null;
 	private MyWriter mFile = null;
@@ -93,8 +93,22 @@ public class MainActivity extends Activity {
 			}
 		}
 	}
-	
-	private ControlViewListener controlListener = new ControlViewListener() {
+
+	private StageViewListener stageListener = new StageViewListener() {
+		public void onSelect() {
+			if ((mVib != null) && (mPhase == MAINPHASE) && (mLastQuad != -1) && !mSelected) {
+				try {
+					mFile.writeTS("SELECT", String.valueOf(mLastQuad));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				mVib.vibrate(50);
+				mStage.highlight(mLastQuad);
+				mSelected = true;
+				mTrial = mTrial + 1;
+				nextTrialDialog();
+			} else {}
+		}
         public void onMotionEvent(int quad, String key, String val) {
 			if ((quad != mLastQuad) && (quad != -1) && !mSelected) {
 				if (!mbFirst) {
@@ -122,23 +136,6 @@ public class MainActivity extends Activity {
 				e.printStackTrace();
 			}
         }
-	};
-
-	private StageViewListener stageListener = new StageViewListener() {
-		public void onSelect() {
-			if ((mVib != null) && (mPhase == MAINPHASE) && (mLastQuad != -1) && !mSelected) {
-				try {
-					mFile.writeTS("SELECT", String.valueOf(mLastQuad));
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				mVib.vibrate(50);
-				mStage.highlight(mLastQuad);
-				mSelected = true;
-				mTrial = mTrial + 1;
-				nextTrialDialog();
-			} else {}
-		}
 	};
 	
 	private void nextTrial() {
@@ -245,9 +242,6 @@ public class MainActivity extends Activity {
 			e.printStackTrace();
 		}
 
-		mControl = (ControlView) findViewById(R.id.control);
-		mControl.setControlViewListener(controlListener);
-		mControl.mRecording = true;
 		mStage = (StageView) findViewById(R.id.stage);
 		mStage.setStageViewListener(stageListener);
 		mVib = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);//Initiate the vibrate service

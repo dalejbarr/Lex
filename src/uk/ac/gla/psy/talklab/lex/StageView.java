@@ -6,7 +6,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
+import android.os.SystemClock;
 import android.support.v4.view.MotionEventCompat;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -17,11 +17,11 @@ public class StageView extends View {
 	
 	public static Context mContext = null;
 	private static final String DEBUG_TAG = "Stage";	
-	private Bitmap[] mAOI = new Bitmap[4]; // large AOIs!
-	private Bitmap[] msAOI = new Bitmap[4]; // small AOIs!
-	private Bitmap mShadow = null;
-	private Bitmap[] mHBM = new Bitmap[4];
+	private Bitmap[] mAOI = new Bitmap[4]; // sharp (formerly large) AOIs!
+	private Bitmap[] msAOI = new Bitmap[4]; // blurred (formerly small) AOIs!
 	private Bitmap mHighlight = null;
+	private int mMidX = 0;
+	private int mMidY = 0;
 	public int mQuad = -1;
 	private StageViewListener mListener = null;
 	private boolean mSelected = false;
@@ -34,33 +34,6 @@ public class StageView extends View {
 	public static int getResId(String var) {
 		return mContext.getResources().getIdentifier("drawable/" + var, null, mContext.getPackageName());
 	}
-	/*
-	
-	public static int getResId(String variableName) {
-	    try {
-	        Field idField = Drawable.class.getDeclaredField(variableName);
-	        return idField.getInt(idField);
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return -1;
-	    } 
-	}
-	*/
-	
-	/*
-	public static Bitmap getBitmapFromAsset(Context context, String strName) {
-	    AssetManager assetManager = context.getAssets();
-	    InputStream istr;
-	    Bitmap bitmap = null;
-	    try {
-	        istr = assetManager.open(strName);
-	        bitmap = BitmapFactory.decodeStream(istr);
-	    } catch (IOException e) {
-	        return null;
-	    }
-	    return bitmap;
-	}
-	*/
 	
 	public void prepare(Item it) {
 		// TODO prepare
@@ -74,10 +47,6 @@ public class StageView extends View {
 				   Log.e(DEBUG_TAG, "ERROR with " + String.valueOf(it.mID) + " " + it.mAOI[i] + "_small");
 			} else {}
 		}
-		if (mShadow == null) {
-			mShadow = Bitmap.createBitmap(mAOI[0].getWidth(), mAOI[0].getHeight(), Bitmap.Config.ARGB_8888);
-			mShadow.eraseColor(Color.argb(158,0,0,0));
-		} else {}
 		mSelected = false;
 		mQuad = -1;
 		invalidate();
@@ -94,14 +63,22 @@ public class StageView extends View {
 		//Log.i(DEBUG_TAG, "highlight");
 	}
 	
+	// given a particular quadrant (0,1,2,3), return the leftmost X coord
+	public int quadX(int i) {
+		return (i % 2)==1 ? getWidth()-msAOI[i].getWidth()-4 : 4;
+	}
+	
+	// given a particular quadrant (0,1,2,3), return the upper Y coord
+	public int quadY(int i) {
+		return (i > 1) ? getHeight()-msAOI[i].getHeight()-4 : 4;
+	}
+	
 	@Override
 	public void onWindowFocusChanged(boolean hasFocus) {
 		super.onWindowFocusChanged(hasFocus);
-		if (mHBM[0] == null) {
-			mHBM[0] = BitmapFactory.decodeResource(getResources(), R.drawable.select_topleft);
-			mHBM[1] = BitmapFactory.decodeResource(getResources(), R.drawable.select_topright);
-			mHBM[2] = BitmapFactory.decodeResource(getResources(), R.drawable.select_botleft);
-			mHBM[3] = BitmapFactory.decodeResource(getResources(), R.drawable.select_botright);
+		mMidX = this.getWidth()/2; 
+		mMidY = this.getHeight()/2;
+		if (mHighlight == null) {
 			mHighlight = BitmapFactory.decodeResource(getResources(), R.drawable.highlight);
 		} else {}
 	}
@@ -110,39 +87,65 @@ public class StageView extends View {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		int bord = (getWidth()-mShadow.getWidth())/2; 
 		int i = 0;
-		int xDir = 0;
-		int yDir = 0;
-		int x = 0;
-		int y = 0;
+		// draw all of the blurred bitmaps
 		for (i = 0; i < 4; i++) {
 			if (msAOI[i] != null) {
-				canvas.drawBitmap(msAOI[i], (i % 2)==1 ? getWidth()-msAOI[i].getWidth()-4 : 4, (i > 1) ? getHeight()-msAOI[i].getHeight()-4 : 4, null);
+				canvas.drawBitmap(msAOI[i], quadX(i), quadY(i), null);
 			} else {}
 		}
+		// mQuad is -1 if no picture has been selected
 		if (mQuad != -1) {
-			xDir = ((mQuad % 2)*2-1);
-			yDir = (int) (Math.floor(mQuad/2)*2-1);
-			x = bord + xDir*3*bord/4;
-			y = bord + yDir*3*bord/4;
-			canvas.drawBitmap(mShadow, x-xDir*10, y-yDir*10, null);
-			canvas.drawBitmap(mAOI[mQuad], x, y, null);
-			canvas.drawBitmap(mHBM[mQuad], (mQuad % 2)==1 ? this.getWidth()-mHBM[mQuad].getWidth() : 0, (mQuad > 1) ? this.getHeight()-mHBM[mQuad].getHeight() : 0, null);
+			canvas.drawBitmap(mAOI[mQuad], quadX(mQuad), quadY(mQuad), null);
 			if (mSelected) {
-				canvas.drawBitmap(mHighlight, x, y, null);
+				canvas.drawBitmap(mHighlight, quadX(mQuad), quadY(mQuad), null);
 			} else {}
 		} else {}
 	}
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		// new, from Control View
+		long msCurrent = SystemClock.uptimeMillis();
+		int quad = -1;
+		boolean bWrite = false;
+
+		// old stuff
 		boolean bHandled = false;
+		
 		int action = MotionEventCompat.getActionMasked(event);
-		if (action == MotionEvent.ACTION_DOWN) {
-			mListener.onSelect();
+		
+		if ((action == MotionEvent.ACTION_DOWN) || (action == MotionEvent.ACTION_MOVE)) {
+			quad = event.getX() > mMidX ? 1 : 0;
+			quad |= event.getY() > mMidY ? 2 : 0;
 			bHandled = true;
+			// TODO: only select if already highlighted, cur quad = mQuad
+			if ((action == MotionEvent.ACTION_DOWN) && (quad == mQuad)) {
+				mListener.onSelect();
+			} else {
+				bWrite = true;				
+			}
+		} else { // not a down or move event
+			if (action == MotionEvent.ACTION_UP) {
+				bWrite = true;
+			} else {}
+			bHandled = super.onTouchEvent(event);
+		}
+		
+ 		if (bWrite) {
+			if (mListener != null) {
+				// TODO create string including motion
+				String s = "MOVE";
+				switch (action) {
+				case MotionEvent.ACTION_UP :
+					s = "UP";
+				case MotionEvent.ACTION_DOWN :
+					s = "DOWN";
+				}
+				mListener.onMotionEvent(quad, s, String.format("%.04f %.04f", (event.getX()-mMidX)/mMidX, (event.getY()-mMidY)/mMidY));
+			} else {}
 		} else {}
+		
 		return bHandled;
 	}
 }

@@ -894,6 +894,7 @@ public final class R {
         public static final int f95=0x7f04005e;
         public static final int f96=0x7f04005f;
         public static final int items=0x7f040060;
+        public static final int itemsfull=0x7f040061;
     }
     public static final class string {
         public static final int app_name=0x7f050000;
