@@ -1,10 +1,10 @@
-Lex
+Lex || Finger Tracking Android Application
 ===
 
-This is beta version designed and written by Dr Dale Barr.
+This is a beta version designed and written by Dr Dale Barr.
 
-An Android application, which applies the visual world paradigm.
-In order to archieve this we use what is known as 'finger tracking'
+Over the past two decades the field of psycholinguistics has greatly benefited from the eye-tracking methodologies used to study spoken language processing. This paradigm known as the visual world paradigm has helped unravel the interface between cognitive subsystems of language processing and others such as memory and attention. However, one drawback of this methodology has been that it has to be performed under laboratory conditions, where participants would have to wear head-mounted eye-trackers or rest their head on a chin-rest. Current technological advances such as smartphones have provided a new platform for performing behavioural and cognitive experiments. We propose a touch-based methodology that we had defined as finger tracking. Participants will provide a continuous stream of input which will give insight into their internal spoken-word processing.
+
 
 96 trials
 96 speach recordings
