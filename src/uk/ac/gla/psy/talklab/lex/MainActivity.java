@@ -56,11 +56,11 @@ public class MainActivity extends Activity {
 	public static final int MAINPHASE = 1;
 	public static final long mPreviewMS = 2500;
 	public static final int NUMFILLERS = 48;
+	public static final long DWELLLIMIT = 1000;
 	public static final int NUMPRACTICE = 10; // number of practice trials
 
 	// these variables need to be set just one time, at initialization/completion
 	public static boolean mSessionCompleted = false;
-	//private ControlView mControl = null;
 	private StageView mStage = null;
 	private MediaPlayer mPlayer = null;
 	private MyWriter mFile = null;
@@ -70,6 +70,20 @@ public class MainActivity extends Activity {
 	protected HashMap<Integer,Item> mItems = null;
 	protected Integer[] mOrder = null;
 	protected XmlResourceParser mXml;
+
+	protected class TouchTimeout implements Runnable {
+		private long mEventMS = 0;
+		public void run() {
+			if ((mEventMS==mLastUpdate) && (!mSelected)) {
+				mStage.mQuad = -1;
+				mStage.invalidate();
+				mLastQuad = -1;
+			} else {}
+		}
+		public TouchTimeout(long ms) {
+			mEventMS = ms;
+		}
+	};
 
 	// these variables need to be reset/updated at each trial
 	private int mPhase = PREVIEW;
@@ -125,11 +139,16 @@ public class MainActivity extends Activity {
 	        	mStage.mQuad = quad;
 	        	mStage.invalidate();
 				mLastUpdate = SystemClock.uptimeMillis();
+				mHandler.postDelayed(new TouchTimeout(mLastUpdate), DWELLLIMIT);
 	        	if ((mVisited.size()==Item.mAllAOIs) && (mPhase == PREVIEW)) {
 	    			mPhase = MAINPHASE;
 	        		mHandler.postDelayed(mThread, mPreviewMS);
-	        	} else {}						
-	        } else {} // quadrant unchanged, do nothing
+	        	} else {}
+	        } else {
+	        	if (quad == -1) {
+	        		mStage.invalidate();
+	        	} else {}
+	        } // quadrant unchanged, do nothing
 			try {
 				mFile.writeTS(key, val);
 			} catch (IOException e) {
