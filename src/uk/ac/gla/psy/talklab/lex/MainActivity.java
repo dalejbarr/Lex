@@ -195,6 +195,7 @@ public class MainActivity extends Activity {
 			alertDialogBuilder
 			.setMessage(String.format("%d %s remaining", mItems.size() - mTrial, msg))
 			.setCancelable(false)
+			/*
 			.setPositiveButton("Quit",new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog,int id) {
 					// if this button is clicked, close
@@ -202,7 +203,8 @@ public class MainActivity extends Activity {
 					MainActivity.this.finish();
 				}
 			})
-			.setNegativeButton("Next Round",new DialogInterface.OnClickListener() {
+			*/
+			.setPositiveButton("Next Round",new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog,int id) {
 					// if this button is clicked, just close
 					// the dialog box and do nothing
