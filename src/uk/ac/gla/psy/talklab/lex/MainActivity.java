@@ -1,5 +1,10 @@
 package uk.ac.gla.psy.talklab.lex;
-
+/**
+ * Main Activity class
+ * 
+ * @author Dale Barr
+ * 
+ */
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -95,6 +100,11 @@ public class MainActivity extends Activity {
 	private int mTrial = 0;
 
 	// // // MEMBER FUNCTIONS
+	/**
+	 * 
+	 * Speech utterance onset
+	 *
+	 */
 	protected class MyThread implements Runnable {
 		public void run() {
 			if (mPlayer != null) {
@@ -109,6 +119,13 @@ public class MainActivity extends Activity {
 	}
 
 	private StageViewListener stageListener = new StageViewListener() {
+		/**
+		 * SELECT function
+		 * 
+		 * Vibrates, highlights the image and calls a dialog box.
+		 * Stores a line corresponding to the last selected image
+		 * 
+		 */
 		public void onSelect() {
 			if ((mVib != null) && (mPhase == MAINPHASE) && (mLastQuad != -1) && !mSelected) {
 				try {
@@ -123,6 +140,9 @@ public class MainActivity extends Activity {
 				nextTrialDialog();
 			} else {}
 		}
+		/**
+		 * MOVE and DOw
+		 */
         public void onMotionEvent(int quad, String key, String val) {
 			if ((quad != mLastQuad) && (quad != -1) && !mSelected) {
 				if (!mbFirst) {
