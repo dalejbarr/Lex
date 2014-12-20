@@ -28,6 +28,7 @@ import org.xml.sax.SAXException;
 import uk.ac.gla.psy.talklab.lex.R;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -43,6 +44,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.Window;
 
+@SuppressLint("UseSparseArrays")
 public class MainActivity extends Activity {
 	
 	public class MyWriter extends BufferedWriter {
@@ -127,7 +129,12 @@ public class MainActivity extends Activity {
 		 * 
 		 */
 		public void onSelect() {
-			if ((mVib != null) && (mPhase == MAINPHASE) && (mLastQuad != -1) && !mSelected) {
+			
+			boolean bVib = (mVib != null);
+			boolean bPhase = (mPhase == MAINPHASE);
+			boolean bQuad = (mLastQuad != -1);
+			
+			if (bVib && bPhase && bQuad && !mSelected) {
 				try {
 					mFile.writeTS("SELECT", String.valueOf(mLastQuad));
 				} catch (IOException e) {
@@ -138,15 +145,19 @@ public class MainActivity extends Activity {
 				mSelected = true;
 				mTrial = mTrial + 1;
 				nextTrialDialog();
-			} else {}
+			}
 		}
 		/**
 		 * MOVE and DOw
 		 */
         public void onMotionEvent(int quad, String key, String val) {
-			if ((quad != mLastQuad) && (quad != -1) && !mSelected) {
+        	
+        	boolean isLastQuad = (quad != mLastQuad);
+        	
+			if (isLastQuad && (quad != -1) && !mSelected) {
 				if (!mbFirst) {
-					if ((SystemClock.uptimeMillis() - mLastUpdate) > 250) { // must be at least 250 ms on pic
+					if ((SystemClock.uptimeMillis() - mLastUpdate) > 250) { 
+						// must be at least 250 ms on pic
 			        	mVisited.add(mLastQuad);
 			        	//Log.i(DEBUG_TAG, mLastQuad + " visited " + ((SystemClock.uptimeMillis() - mLastUpdate)));
 					} else {
@@ -160,14 +171,14 @@ public class MainActivity extends Activity {
 	        	mStage.invalidate();
 				mLastUpdate = SystemClock.uptimeMillis();
 				mHandler.postDelayed(new TouchTimeout(mLastUpdate), DWELLLIMIT);
-	        	if ((mVisited.size()==Item.mAllAOIs) && (mPhase == PREVIEW)) {
+	        	if ((mVisited.size()==Item.mAOIs) && (mPhase == PREVIEW)) {
 	    			mPhase = MAINPHASE;
 	        		mHandler.postDelayed(mThread, mPreviewMS);
-	        	} else {}
+	        	}
 	        } else {
 	        	if (quad == -1) {
 	        		mStage.invalidate();
-	        	} else {}
+	        	}
 	        } // quadrant unchanged, do nothing
 			try {
 				mFile.writeTS(key, val);
@@ -184,22 +195,35 @@ public class MainActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		mPhase = PREVIEW;
-		mLastQuad = -1;
-		mLastUpdate = 0;
-		mbFirst = true;  // first time subject selects any region
-		mVisited.clear(); // which quadrants have been visited
-		mSelected = false;
-		Item iCur = mItems.get(mOrder[mTrial]);
+		
+		resetStates();
+		
 		try {
 			mFile.writeTS("BEGIN", String.valueOf(mOrder[mTrial]));
 			mFile.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		
+		prepAudio();
+	}
+	
+	private void resetStates() {
+		mPhase = PREVIEW;
+		mLastQuad = -1;
+		mLastUpdate = 0;
+		mbFirst = true;  // first time subject selects any region
+		mVisited.clear(); // which quadrants have been visited
+		mSelected = false;
+	}
+	
+	private void prepAudio() {
+		Item iCur = mItems.get(mOrder[mTrial]);
 		mStage.prepare(iCur);
-		mPlayer = MediaPlayer.create(this, getResources().getIdentifier("raw/" + iCur.mSpeech, null, getPackageName()));
+		
+		int audioFile = getResources().getIdentifier("raw/" + iCur.mSpeech, null, getPackageName());
+		
+		mPlayer = MediaPlayer.create(this, audioFile);
 	}
 	
 	private void nextTrialDialog() {
@@ -262,12 +286,19 @@ public class MainActivity extends Activity {
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
 		setContentView(R.layout.activity_main);
-
+		writeToFile();
+		initStage();
+		shuffleItems(); // load all the items into an integer array, then shuffle
+		nextTrial();
+	}
+	
+	private void writeToFile() {
 		String basepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Lex/";
+		String basename = String.format("s%07d.txt", DashboardActivity.mSessionID);
 		File f1 = new File(basepath);
 		f1.mkdirs();
 		
-		String fname = basepath + String.format("s%07d.txt", DashboardActivity.mSessionID);
+		String fname = basepath + basename;
 		//String fname = getFilesDir() + String.format("/s%07d.txt", DashboardActivity.mSessionID);
 		try {
 			mFile = new MyWriter(fname);
@@ -282,15 +313,19 @@ public class MainActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+	}
+	
+	private void initStage() {
 		mStage = (StageView) findViewById(R.id.stage);
 		mStage.setStageViewListener(stageListener);
 		mVib = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);//Initiate the vibrate service
 		mThread = new MyThread();
-		mVisited = new HashSet<Integer>(Item.mAllAOIs);
+		mVisited = new HashSet<Integer>(Item.mAOIs);
 		mItems = new HashMap<Integer,Item>();
 		loadXML();
-		// load all the items into an integer array, then shuffle
+	}
+	
+	private void shuffleItems() {
 		mOrder = new Integer[mItems.size()];
 		Iterator<Map.Entry<Integer,Item>> it = mItems.entrySet().iterator();
 		int i = 0;
@@ -298,7 +333,8 @@ public class MainActivity extends Activity {
 	        Map.Entry<Integer,Item> pairs = it.next();
 	        mOrder[i++] = pairs.getKey();
 	    }
-		if (mItems.size() > MainActivity.NUMPRACTICE) { // full experiment!
+	    // check whether experiment is full
+		if (mItems.size() > MainActivity.NUMPRACTICE) { 
 			// first create just an array with the fillers, and shuffle it
 			Integer[] itFillers = new Integer[MainActivity.NUMFILLERS];
 			for (i=0; i<MainActivity.NUMFILLERS; i++) { // filler numbers
@@ -331,8 +367,6 @@ public class MainActivity extends Activity {
 		    mOrder = new ShuffleArray(mOrder).get();
 		}
 	    //Log.i(DEBUG_TAG, mOrder[0] + " is first");
-		
-		nextTrial();
 	}
 
 	
@@ -348,44 +382,64 @@ public class MainActivity extends Activity {
 		DocumentBuilder builder = null;
 		try {
 		    builder = builderFactory.newDocumentBuilder();
+			InputStream is = getResources().openRawResource(R.raw.items);
+		    //parse using builder to get DOM representation of the XML file
+			try {
+				Document doc = builder.parse(is, null);
+				parseDoc(doc);
+			} finally {}
 		} catch (ParserConfigurationException e) {
 		    e.printStackTrace();  
-		}
-		InputStream is = getResources().openRawResource(R.raw.items);
-	    //parse using builder to get DOM representation of the XML file
-		
-		try {
-			Document doc = builder.parse(is, null);
-			doc.getDocumentElement().normalize();
-			Element rootElement = doc.getDocumentElement();
-			NodeList nodes = rootElement.getChildNodes();
-			Node iNode = null;
-			int thisID = 0;
-			String[] aoi = new String[Item.mAllAOIs];
-			String sfile;
-			
-			// each node is an item
-			for(int i=0; i<nodes.getLength(); i++){
-			  iNode = nodes.item(i);
-
-			  if (iNode.getNodeType() == Node.ELEMENT_NODE) {
-				  
-				  Element eElement = (Element) iNode;
-				  thisID = Integer.parseInt(eElement.getAttribute("id"));
-				  aoi[0] = eElement.getElementsByTagName("aoi0").item(0).getTextContent();
-				  aoi[1] = eElement.getElementsByTagName("aoi1").item(0).getTextContent();
-				  aoi[2] = eElement.getElementsByTagName("aoi2").item(0).getTextContent();
-				  aoi[3] = eElement.getElementsByTagName("aoi3").item(0).getTextContent();
-				  sfile = eElement.getElementsByTagName("speech").item(0).getTextContent();
-				  mItems.put(thisID, new Item(thisID,aoi[0],aoi[1],aoi[2],aoi[3],sfile));
-			  } else {} // ignore
-			}
 		} catch (SAXException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		//Log.i(DEBUG_TAG, "read " + mItems.size() + " items");
+	}
+	
+	private void parseDoc(Document doc) throws SAXException, IOException {
+		doc.getDocumentElement().normalize();
+		Element rootElement = doc.getDocumentElement();
+		NodeList nodes = rootElement.getChildNodes();
+		Node iNode = null;
+		int thisID = 0;
+		String[] aoi = new String[Item.mAOIs];
+		String sfile;
+		
+		// each node is an item
+		for(int i = 0; i < nodes.getLength(); i++){
+		  iNode = nodes.item(i);
+
+		  if (iNode.getNodeType() == Node.ELEMENT_NODE) {
+			  
+			  Element eElement = (Element) iNode;
+			  thisID = Integer.parseInt(eElement.getAttribute("id"));
+			  aoi[0] = eElement.getElementsByTagName("aoi0").item(0).getTextContent();
+			  aoi[1] = eElement.getElementsByTagName("aoi1").item(0).getTextContent();
+			  aoi[2] = eElement.getElementsByTagName("aoi2").item(0).getTextContent();
+			  aoi[3] = eElement.getElementsByTagName("aoi3").item(0).getTextContent();
+			  sfile = eElement.getElementsByTagName("speech").item(0).getTextContent();
+			  Item item = new Item(thisID,aoi[0],aoi[1],aoi[2],aoi[3],sfile);
+			  
+			  mItems.put(thisID, item);
+		  } // ignore
+		}
+	}
+	
+	/** Recursive method for parsing nodes */
+	public void doSomething(Node node) {
+	    // do something with the current node instead of System.out
+	    // System.out.println(node.getNodeName());
+
+	    NodeList nodeList = node.getChildNodes();
+	    for (int i = 0; i < nodeList.getLength(); i++) {
+	        Node currentNode = nodeList.item(i);
+	        if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
+	            //calls this method for all the children which is Element
+	            doSomething(currentNode);
+	        }
+	    }
 	}
 	
 	@Override
