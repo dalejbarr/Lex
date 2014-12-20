@@ -7,5 +7,9 @@
     <string name="main_activity_display_message">Trial Window</string>
     <string name="next">Next Round</string>
     <string name="quit">Quit</string>
+    <string name="guid">GUID</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="email">email@domain.com</string>
 
 </resources>
