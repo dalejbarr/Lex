@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
 				mStage.mQuad = -1;
 				mStage.invalidate();
 				mLastQuad = -1;
-			} else {}
+			}
 		}
 		public TouchTimeout(long ms) {
 			mEventMS = ms;
@@ -111,7 +111,7 @@ public class MainActivity extends Activity {
 		public void run() {
 			if (mPlayer != null) {
 				mPlayer.start();
-			} else {}
+			}
 			try {
 				mFile.writeTS("SYNCTIME", mItems.get(mOrder[mTrial]).mSpeech);
 			} catch (IOException e) {
@@ -143,12 +143,12 @@ public class MainActivity extends Activity {
 				mVib.vibrate(50);
 				mStage.highlight(mLastQuad);
 				mSelected = true;
-				mTrial = mTrial + 1;
+				mTrial = mTrial++;
 				nextTrialDialog();
 			}
 		}
 		/**
-		 * MOVE and DOw
+		 * MOVE and DOWN
 		 */
         public void onMotionEvent(int quad, String key, String val) {
         	
@@ -160,9 +160,7 @@ public class MainActivity extends Activity {
 						// must be at least 250 ms on pic
 			        	mVisited.add(mLastQuad);
 			        	//Log.i(DEBUG_TAG, mLastQuad + " visited " + ((SystemClock.uptimeMillis() - mLastUpdate)));
-					} else {
-						//Log.i(DEBUG_TAG, "too short on " + mLastQuad + " not added");
-					}
+					} // else {Log.i(DEBUG_TAG, "too short on " + mLastQuad + " not added");}
 				} else {
 					mbFirst = false;
 				}
@@ -229,55 +227,65 @@ public class MainActivity extends Activity {
 	private void nextTrialDialog() {
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 		if (mTrial < mItems.size()) {
-			// set title
-			alertDialogBuilder.setTitle("Round completed");
-			// set dialog message
-			String msg = "rounds";
-			if ((mItems.size()-mTrial) == 1) {
-				msg = "round";
-			} else {}
-			alertDialogBuilder
-			.setMessage(String.format("%d %s remaining", mItems.size() - mTrial, msg))
-			.setCancelable(false)
-			/*
-			.setPositiveButton("Quit",new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog,int id) {
-					// if this button is clicked, close
-					// current activity
-					MainActivity.this.finish();
-				}
-			})
-			*/
-			.setPositiveButton("Next Round",new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog,int id) {
-					// if this button is clicked, just close
-					// the dialog box and do nothing
-					dialog.cancel();
-					MainActivity.this.nextTrial();
-				}
-			});
+			alertDialogBuilder = trialsRemaining(alertDialogBuilder);
 		} else {
-			try {
-				mFile.writeTS("SESSION_END", String.valueOf(DashboardActivity.mSessionID));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			MainActivity.mSessionCompleted = true;
-			alertDialogBuilder
-			.setMessage("Experiment Completed!")
-			.setCancelable(false)
-			.setPositiveButton("OK",new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog,int id) {
-					// if this button is clicked, close
-					// current activity
-					MainActivity.this.finish();
-				}
-			});
+			alertDialogBuilder = sessionEnd(alertDialogBuilder);
 		}
 		// create alert dialog
 		AlertDialog alertDialog = alertDialogBuilder.create();
 		// show it
 		alertDialog.show();
+	}
+	
+	private AlertDialog.Builder trialsRemaining(AlertDialog.Builder alertDialogBuilder) {
+		// set title
+		alertDialogBuilder.setTitle("Round completed");
+		// set dialog message
+		String msg = "rounds";
+		if ((mItems.size()-mTrial) == 1) {
+			msg = "round";
+		}
+		alertDialogBuilder
+		.setMessage(String.format("%d %s remaining", mItems.size() - mTrial, msg))
+		.setCancelable(false)
+		/*
+		.setPositiveButton("Quit",new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog,int id) {
+				// if this button is clicked, close
+				// current activity
+				MainActivity.this.finish();
+			}
+		})
+		*/
+		.setPositiveButton("Next Round",new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog,int id) {
+				// if this button is clicked, just close
+				// the dialog box and do nothing
+				dialog.cancel();
+				MainActivity.this.nextTrial();
+			}
+		});
+		return alertDialogBuilder;
+	}
+	
+	private AlertDialog.Builder sessionEnd(AlertDialog.Builder alertDialogBuilder){
+		try {
+			mFile.writeTS("SESSION_END", String.valueOf(DashboardActivity.mSessionID));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		MainActivity.mSessionCompleted = true;
+		alertDialogBuilder
+		.setMessage("Experiment Completed!")
+		.setCancelable(false)
+		.setPositiveButton("OK",new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog,int id) {
+				// if this button is clicked, close
+				// current activity
+				MainActivity.this.finish();
+			}
+		});
+		return alertDialogBuilder;
 	}
 	
 	@Override
@@ -293,7 +301,8 @@ public class MainActivity extends Activity {
 	}
 	
 	private void writeToFile() {
-		String basepath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Lex/";
+		String external = Environment.getExternalStorageDirectory().getAbsolutePath();
+		String basepath = external + "/Lex/"; //TODO use getApplicationName();
 		String basename = String.format("s%07d.txt", DashboardActivity.mSessionID);
 		File f1 = new File(basepath);
 		f1.mkdirs();
@@ -313,6 +322,11 @@ public class MainActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static String getApplicationName(Context context) {
+	    int stringId = context.getApplicationInfo().labelRes;
+	    return context.getString(stringId);
 	}
 	
 	private void initStage() {
@@ -402,8 +416,8 @@ public class MainActivity extends Activity {
 		doc.getDocumentElement().normalize();
 		Element rootElement = doc.getDocumentElement();
 		NodeList nodes = rootElement.getChildNodes();
-		Node iNode = null;
-		int thisID = 0;
+		Node iNode;
+		int thisID;
 		String[] aoi = new String[Item.mAOIs];
 		String sfile;
 		
@@ -450,7 +464,7 @@ public class MainActivity extends Activity {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} else {}
+		}
 		super.onDestroy();
 	}
 }
